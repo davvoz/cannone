@@ -251,16 +251,40 @@ class GameEngine {
     }
 
     handleDeveloperPanelClick(mx, my) {
-        // Developer panel interaction logic would go here
-        // For now, just basic slider interaction
         const panelX = this.canvas.width - 320;
         const panelY = 10;
         
-        // Toggle interactions
+        // Slider parameters with their positions and ranges
+        const sliders = [
+            { y: panelY + 50, param: 'enemySpeed', min: 0.5, max: 5 },
+            { y: panelY + 90, param: 'spawnRate', min: 0.5, max: 3 },
+            { y: panelY + 130, param: 'enemyHealthMultiplier', min: 0.1, max: 3 },
+            { y: panelY + 170, param: 'playerDamageMultiplier', min: 0.5, max: 5 },
+            { y: panelY + 210, param: 'moneyMultiplier', min: 0.5, max: 5 }
+        ];
+
+        // Check slider interactions
+        for (let slider of sliders) {
+            const sliderX = panelX + 80;
+            const sliderW = 200;
+            const sliderH = 10;
+            
+            if (mx >= sliderX && mx <= sliderX + sliderW && 
+                my >= slider.y - 5 && my <= slider.y + 5) {
+                // Calculate new value based on click position
+                const clickRatio = (mx - sliderX) / sliderW;
+                const newValue = slider.min + (clickRatio * (slider.max - slider.min));
+                this.devParams[slider.param] = Math.max(slider.min, Math.min(slider.max, newValue));
+                return;
+            }
+        }
+
+        // Toggle interactions - Fixed positions to match rendering
+        let yOffset = 250 + 60; // After sliders (250) + 60 offset
         const toggles = [
-            { y: panelY + 290, param: 'godMode' },
-            { y: panelY + 320, param: 'infiniteMoney' },
-            { y: panelY + 350, param: 'noCooldowns' }
+            { y: panelY + yOffset, param: 'godMode' },
+            { y: panelY + yOffset + 30, param: 'infiniteMoney' },
+            { y: panelY + yOffset + 60, param: 'noCooldowns' }
         ];
 
         for (let toggle of toggles) {

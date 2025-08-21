@@ -2,6 +2,8 @@ class InputManager {
     constructor(gameEngine) {
         this.gameEngine = gameEngine;
         this.mousePosition = { x: 0, y: 0 };
+        this.isDragging = false;
+        this.dragTarget = null;
         this.setupEventListeners();
     }
 
@@ -12,11 +14,26 @@ class InputManager {
             this.mousePosition.x = e.clientX - rect.left;
             this.mousePosition.y = e.clientY - rect.top;
             this.gameEngine.mousePosition = this.mousePosition;
+            
+            // Handle dragging
+            if (this.isDragging && this.dragTarget) {
+                this.handleSliderDrag(this.mousePosition.x, this.mousePosition.y);
+            }
         });
 
         // Mouse click handling
         this.gameEngine.canvas.addEventListener('click', (e) => {
             this.handleClick(e);
+        });
+
+        // Mouse drag handling for sliders
+        this.gameEngine.canvas.addEventListener('mousedown', (e) => {
+            this.handleMouseDown(e);
+        });
+        
+        this.gameEngine.canvas.addEventListener('mouseup', (e) => {
+            this.isDragging = false;
+            this.dragTarget = null;
         });
 
         // Keyboard controls
@@ -65,6 +82,54 @@ class InputManager {
             this.gameEngine.handleDeveloperPanelClick(x, y);
             return;
         }
+    }
+
+    handleMouseDown(e) {
+        const rect = this.gameEngine.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Check if clicking on a developer panel slider
+        if (this.gameEngine.showDeveloperPanel) {
+            const panelX = this.gameEngine.canvas.width - 320;
+            const panelY = 10;
+            
+            const sliders = [
+                { y: panelY + 50, param: 'enemySpeed', min: 0.5, max: 5 },
+                { y: panelY + 90, param: 'spawnRate', min: 0.5, max: 3 },
+                { y: panelY + 130, param: 'enemyHealthMultiplier', min: 0.1, max: 3 },
+                { y: panelY + 170, param: 'playerDamageMultiplier', min: 0.5, max: 5 },
+                { y: panelY + 210, param: 'moneyMultiplier', min: 0.5, max: 5 }
+            ];
+
+            for (let slider of sliders) {
+                const sliderX = panelX + 80;
+                const sliderW = 200;
+                const sliderH = 10;
+                
+                if (x >= sliderX && x <= sliderX + sliderW && 
+                    y >= slider.y - 5 && y <= slider.y + 5) {
+                    this.isDragging = true;
+                    this.dragTarget = slider;
+                    this.handleSliderDrag(x, y);
+                    e.preventDefault();
+                    return;
+                }
+            }
+        }
+    }
+
+    handleSliderDrag(mx, my) {
+        if (!this.dragTarget) return;
+        
+        const panelX = this.gameEngine.canvas.width - 320;
+        const sliderX = panelX + 80;
+        const sliderW = 200;
+        
+        // Calculate new value based on mouse position
+        const clickRatio = Math.max(0, Math.min(1, (mx - sliderX) / sliderW));
+        const newValue = this.dragTarget.min + (clickRatio * (this.dragTarget.max - this.dragTarget.min));
+        this.gameEngine.devParams[this.dragTarget.param] = newValue;
     }
 
     handleKeyDown(e) {
