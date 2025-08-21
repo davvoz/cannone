@@ -256,11 +256,17 @@ class GameEngine {
         const panelX = this.canvas.width - 320;
         const panelY = 10;
         
-        // Toggle interactions
+        // Calculate toggle positions using same logic as UIManager rendering
+        // Match the yOffset calculation from UIManager.renderDeveloperPanel
+        let yOffset = 50; // Start after title
+        yOffset += 40 * 5; // Skip 5 sliders (Enemy Speed, Spawn Rate, Enemy Health, Player Damage, Money Multiplier)
+        yOffset += 60; // Space before toggles
+        
+        // Toggle interactions with dynamically calculated positions
         const toggles = [
-            { y: panelY + 290, param: 'godMode' },
-            { y: panelY + 320, param: 'infiniteMoney' },
-            { y: panelY + 350, param: 'noCooldowns' }
+            { y: panelY + yOffset, param: 'godMode' },
+            { y: panelY + yOffset + 30, param: 'infiniteMoney' },
+            { y: panelY + yOffset + 60, param: 'noCooldowns' }
         ];
 
         for (let toggle of toggles) {
