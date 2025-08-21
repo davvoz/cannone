@@ -154,7 +154,23 @@
     ">🎵 Musica ON</button>
     </div>
     
-    <script src="game.js"></script>
+    <!-- Core Systems -->
+    <script src="AudioManager.js"></script>
+    <script src="CollisionSystem.js"></script>
+    <script src="EffectsSystem.js"></script>
+    <script src="InputManager.js"></script>
+    <script src="UIManager.js"></script>
+    <script src="Renderer.js"></script>
+    
+    <!-- Game Systems -->
+    <script src="UpgradeSystem.js"></script>
+    <script src="WeaponSystem.js"></script>
+    <script src="EnemySystem.js"></script>
+    <script src="ShieldSystem.js"></script>
+    <script src="UltimateSystem.js"></script>
+    
+    <!-- Main Game Engine -->
+    <script src="GameEngine.js"></script>
     <script>
       window.addEventListener('DOMContentLoaded', function() {
         var bgMusic = document.getElementById('bgMusic');
