@@ -25,16 +25,13 @@ class EnemySystem {
     }
 
     spawnEnemy() {
-        const spawnSide = Math.random() < 0.5 ? 'left' : 'right';
+        // Spawn enemies from the top of the screen
         let x, y;
         
-        if (spawnSide === 'left') {
-            x = -30;
-            y = Math.random() * (this.gameEngine.canvas.height - 200) + 50;
-        } else {
-            x = this.gameEngine.canvas.width + 30;
-            y = Math.random() * (this.gameEngine.canvas.height - 200) + 50;
-        }
+        // Random x position across the screen width, avoiding the edges
+        x = Math.random() * (this.gameEngine.canvas.width - 100) + 50;
+        // Spawn above the screen
+        y = -30;
 
         const enemy = this.createEnemy(x, y);
         this.enemies.push(enemy);
@@ -60,7 +57,12 @@ class EnemySystem {
             color: '#FF5722',
             angle: 0,
             zigzagTimer: 0,
-            direction: x < 0 ? 1 : -1
+            // Animation properties for beautiful effects
+            rotationSpeed: (Math.random() - 0.5) * 0.1,
+            scale: 1,
+            pulseTimer: Math.random() * Math.PI * 2,
+            horizontalOffset: 0,
+            baseX: x
         };
 
         // Apply type-specific properties
@@ -134,27 +136,47 @@ class EnemySystem {
     }
 
     updateEnemyMovement(enemy) {
+        // Update animation timers
+        enemy.angle += enemy.rotationSpeed;
+        enemy.pulseTimer += 0.05;
+        enemy.scale = 1 + Math.sin(enemy.pulseTimer) * 0.1;
+
         switch (enemy.type) {
             case 'normal':
+                // Simple downward movement
+                enemy.y += enemy.speed;
+                break;
             case 'fast':
+                // Fast downward movement with slight horizontal drift
+                enemy.y += enemy.speed;
+                enemy.horizontalOffset = Math.sin(enemy.y * 0.01) * 10;
+                enemy.x = enemy.baseX + enemy.horizontalOffset;
+                break;
             case 'boss':
-                enemy.x += enemy.speed * enemy.direction;
+                // Slow but imposing downward movement with pulsing
+                enemy.y += enemy.speed;
+                enemy.scale = 1 + Math.sin(enemy.pulseTimer) * 0.2;
                 break;
             case 'zigzag':
-                enemy.x += enemy.speed * enemy.direction;
-                enemy.zigzagTimer += 0.1;
-                enemy.y += Math.sin(enemy.zigzagTimer) * 2;
+                // Downward movement with horizontal zigzag pattern
+                enemy.y += enemy.speed;
+                enemy.zigzagTimer += 0.15;
+                enemy.horizontalOffset = Math.sin(enemy.zigzagTimer) * 50;
+                enemy.x = enemy.baseX + enemy.horizontalOffset;
                 break;
             case 'splitter':
-                enemy.x += enemy.speed * enemy.direction;
-                enemy.angle += 0.05;
+                // Downward movement with spinning animation
+                enemy.y += enemy.speed;
+                enemy.angle += 0.08;
+                enemy.horizontalOffset = Math.cos(enemy.y * 0.02) * 15;
+                enemy.x = enemy.baseX + enemy.horizontalOffset;
                 break;
         }
     }
 
     checkEnemyBounds(enemy, index) {
-        // Remove enemies that go off screen
-        if (enemy.x < -50 || enemy.x > this.gameEngine.canvas.width + 50) {
+        // Remove enemies that go off the bottom of the screen
+        if (enemy.y > this.gameEngine.canvas.height + 50) {
             this.enemies.splice(index, 1);
             // Take damage for letting enemy escape
             if (!this.gameEngine.devParams.godMode) {
@@ -206,7 +228,12 @@ class EnemySystem {
                 color: '#00ACC1',
                 angle: 0,
                 zigzagTimer: 0,
-                direction: enemy.direction
+                // Animation properties for beautiful effects
+                rotationSpeed: (Math.random() - 0.5) * 0.15,
+                scale: 1,
+                pulseTimer: Math.random() * Math.PI * 2,
+                horizontalOffset: 0,
+                baseX: enemy.x + Math.cos(angle) * 20
             };
             this.enemies.push(part);
         }
@@ -228,27 +255,93 @@ class EnemySystem {
         ctx.save();
         ctx.translate(enemy.x, enemy.y);
         
-        if (enemy.type === 'splitter') {
+        // Apply scaling animation
+        ctx.scale(enemy.scale, enemy.scale);
+        
+        // Apply rotation for certain types
+        if (enemy.type === 'splitter' || enemy.type === 'fast') {
             ctx.rotate(enemy.angle);
         }
 
-        // Enemy body
+        // Enhanced enemy body rendering based on type
         ctx.beginPath();
-        ctx.arc(0, 0, enemy.size, 0, Math.PI * 2);
+        
+        switch (enemy.type) {
+            case 'normal':
+                // Simple circle
+                ctx.arc(0, 0, enemy.size, 0, Math.PI * 2);
+                break;
+            case 'fast':
+                // Triangle shape for speed
+                ctx.moveTo(0, -enemy.size);
+                ctx.lineTo(-enemy.size * 0.8, enemy.size * 0.8);
+                ctx.lineTo(enemy.size * 0.8, enemy.size * 0.8);
+                ctx.closePath();
+                break;
+            case 'boss':
+                // Larger hexagon for boss
+                const sides = 6;
+                const step = (Math.PI * 2) / sides;
+                ctx.moveTo(enemy.size * Math.cos(0), enemy.size * Math.sin(0));
+                for (let i = 1; i <= sides; i++) {
+                    ctx.lineTo(enemy.size * Math.cos(step * i), enemy.size * Math.sin(step * i));
+                }
+                ctx.closePath();
+                break;
+            case 'zigzag':
+                // Diamond shape
+                ctx.moveTo(0, -enemy.size);
+                ctx.lineTo(enemy.size, 0);
+                ctx.lineTo(0, enemy.size);
+                ctx.lineTo(-enemy.size, 0);
+                ctx.closePath();
+                break;
+            case 'splitter':
+                // Star shape
+                const spikes = 5;
+                const outerRadius = enemy.size;
+                const innerRadius = enemy.size * 0.5;
+                const stepAngle = Math.PI / spikes;
+                ctx.moveTo(outerRadius, 0);
+                for (let i = 0; i < spikes * 2; i++) {
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const angle = i * stepAngle;
+                    ctx.lineTo(radius * Math.cos(angle), radius * Math.sin(angle));
+                }
+                ctx.closePath();
+                break;
+        }
+        
+        // Add glow effect for certain types
+        if (enemy.type === 'boss' || enemy.type === 'splitter') {
+            ctx.shadowColor = enemy.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
+        
         ctx.fillStyle = enemy.color;
         ctx.fill();
         
-        // Health bar
+        // Add outline
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Reset shadow
+        ctx.shadowBlur = 0;
+        
+        ctx.restore();
+        
+        // Health bar (drawn without transformations)
         const barWidth = enemy.size * 2;
         const barHeight = 4;
         const healthPercent = enemy.health / enemy.maxHealth;
         
         ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-        ctx.fillRect(-barWidth / 2, -enemy.size - 10, barWidth, barHeight);
+        ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemy.size - 15, barWidth, barHeight);
         
         ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
-        ctx.fillRect(-barWidth / 2, -enemy.size - 10, barWidth * healthPercent, barHeight);
-
-        ctx.restore();
+        ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemy.size - 15, barWidth * healthPercent, barHeight);
     }
 }
