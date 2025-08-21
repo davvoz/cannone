@@ -1,0 +1,14 @@
+# Original monolithic file (kept for reference)
+game_original_monolith.js
+
+# Temporary files
+.DS_Store
+*.tmp
+*.log
+
+# Node modules if any
+node_modules/
+
+# Build artifacts
+dist/
+build/
