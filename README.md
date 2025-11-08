@@ -9,6 +9,15 @@ The game is deployed on GitHub Pages and can be played directly in your browser:
 - Live Game: https://davvoz.github.io/cannone/
 - Repository: https://github.com/davvoz/cannone
 
+## 🎮 Platform Integration
+This game is integrated with the [Ggameplatform](https://github.com/davvoz/Ggameplatform) and supports:
+- ✅ Pause/Resume functionality
+- ✅ Score tracking and leaderboards
+- ✅ Platform event handling
+- ✅ Game state synchronization
+
+For integration details, see [PLATFORM_INTEGRATION.md](PLATFORM_INTEGRATION.md)
+
 ## 🎮 Game Features
 
 ### Weapons and Defense Systems
