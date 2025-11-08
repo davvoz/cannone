@@ -10,6 +10,7 @@ class GameEngine {
         this.showDeveloperPanel = false;
         this.developerMode = false;
         this.musicEnabled = true;
+        this.isPlatformPaused = false;
         
         // Initialize progression system
         this.initializeProgressionSystem();
@@ -22,6 +23,9 @@ class GameEngine {
         
         // Initialize all systems
         this.initializeSystems();
+        
+        // Initialize Platform SDK
+        this.initializePlatformSDK();
         
         // Start game loop
         this.gameLoop();
@@ -80,7 +84,74 @@ class GameEngine {
         this.inputManager = new InputManager(this);
     }
 
+    initializePlatformSDK() {
+        // Check if PlatformSDK is available
+        if (typeof PlatformSDK === 'undefined') {
+            console.log('PlatformSDK not available - running in standalone mode');
+            return;
+        }
+
+        // Initialize Platform SDK
+        PlatformSDK.init({ timeout: 10000 })
+            .then(() => {
+                console.log('Platform SDK initialized successfully');
+                
+                // Listen for platform events
+                PlatformSDK.on('pause', () => {
+                    this.isPlatformPaused = true;
+                    this.pauseBackgroundMusic();
+                });
+
+                PlatformSDK.on('resume', () => {
+                    this.isPlatformPaused = false;
+                    this.resumeBackgroundMusic();
+                });
+
+                PlatformSDK.on('start', () => {
+                    console.log('Platform start event received');
+                });
+
+                PlatformSDK.on('exit', () => {
+                    console.log('Platform exit event received');
+                    this.pauseBackgroundMusic();
+                });
+
+                // Send initial score
+                this.sendScoreUpdate();
+            })
+            .catch(err => {
+                console.log('Platform SDK initialization failed - running in standalone mode:', err);
+            });
+    }
+
+    sendScoreUpdate() {
+        if (typeof PlatformSDK !== 'undefined' && !this.gameOver) {
+            PlatformSDK.sendScore(this.kills, {
+                wave: this.wave,
+                health: this.health,
+                money: this.money
+            });
+        }
+    }
+
+    pauseBackgroundMusic() {
+        const bgMusic = document.getElementById('bgMusic');
+        if (bgMusic && !bgMusic.paused) {
+            bgMusic.pause();
+        }
+    }
+
+    resumeBackgroundMusic() {
+        const bgMusic = document.getElementById('bgMusic');
+        if (bgMusic && bgMusic.paused && this.musicEnabled) {
+            bgMusic.play().catch(err => console.log('Could not resume music:', err));
+        }
+    }
+
     update() {
+        // Don't update if paused by platform
+        if (this.isPlatformPaused) return;
+        
         // Don't update during game over
         if (this.gameOver) return;
 
@@ -158,6 +229,16 @@ class GameEngine {
             'bonus'
         );
 
+        // Send wave completion to platform
+        if (typeof PlatformSDK !== 'undefined') {
+            PlatformSDK.levelCompleted(this.wave - 1, {
+                bonus: bonus,
+                totalKills: this.kills,
+                currentMoney: this.money
+            });
+            this.sendScoreUpdate();
+        }
+
         // Survival bonus every 5 waves
         if (this.wave % 5 === 1) {
             const survivalBonus = this.wave * 50;
@@ -182,6 +263,16 @@ class GameEngine {
             this.permanentProgress.totalWaves = Math.max(this.permanentProgress.totalWaves, this.wave);
             this.permanentProgress.experiencePoints += Math.floor(this.kills * 2 + this.wave * 10);
             this.saveProgress();
+
+            // Send game over to platform
+            if (typeof PlatformSDK !== 'undefined') {
+                PlatformSDK.gameOver(this.kills, {
+                    wave: this.wave,
+                    totalKills: this.kills,
+                    finalMoney: this.money,
+                    experienceEarned: Math.floor(this.kills * 2 + this.wave * 10)
+                });
+            }
 
             // Setup click handler for restart
             this.canvas.addEventListener('click', () => this.resetGame(), { once: true });

@@ -194,6 +194,9 @@ class EnemySystem {
         this.gameEngine.permanentProgress.totalKills++;
         this.gameEngine.permanentProgress.experiencePoints += Math.floor(enemy.reward / 2);
 
+        // Send score update to platform
+        this.gameEngine.sendScoreUpdate();
+
         // Handle splitter enemies
         if (enemy.type === 'splitter') {
             this.createSplitterParts(enemy);
